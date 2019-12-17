@@ -6,9 +6,9 @@ import java.io.File
  * Interface for retrieving log files
  */
 interface LogManagerInterface {
-    abstract fun getLogFiles(): List<File>
+    fun getLogFiles(): List<File>
 
-    abstract fun getLogFileNames(): Array<String>?
+    fun getLogFileNames(): Array<String>?
 
-    abstract fun getLogDir(): String?
+    fun getLogDir(): String?
 }

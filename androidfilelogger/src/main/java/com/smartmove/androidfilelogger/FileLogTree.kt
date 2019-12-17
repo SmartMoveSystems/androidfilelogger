@@ -3,9 +3,14 @@ package com.smartmove.androidfilelogger
 import android.annotation.SuppressLint
 import android.util.Log
 import timber.log.Timber
-import java.io.*
+import java.io.File
+import java.io.OutputStream
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.FilenameFilter
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 @SuppressLint("LogNotTimber")
 class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(), LogManagerInterface {
@@ -71,19 +76,6 @@ class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(
                 tryToCloseOutputStream(fileOutputStream)
             }
         }
-    }
-
-    /**
-     * Tries to close a stream
-     * @param stream
-     */
-    private fun tryToCloseOutputStream(stream: OutputStream?) {
-        try {
-            stream?.close()
-        } catch (e: Exception) {
-            Log.e(FileLogTree::class.java.simpleName, "Could not close stream!", e)
-        }
-
     }
 
     private fun checkCurrentFileReady(): Boolean {
@@ -155,7 +147,6 @@ class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(
         }
         return fileList
     }
-
 
     private fun getLatestLogFile(): File? {
         val currentFiles = cleanupAndReturnFileList()
