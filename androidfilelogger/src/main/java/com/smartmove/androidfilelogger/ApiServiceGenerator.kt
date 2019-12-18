@@ -3,10 +3,9 @@ package com.smartmove.androidfilelogger
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 
-class ApiServiceGenerator(baseUrl: String) {
+class ApiServiceGenerator {
 
     private val retrofit = Retrofit.Builder()
-        .baseUrl(baseUrl)
         .client(OkHttpClient.Builder().build())
         .build()
 

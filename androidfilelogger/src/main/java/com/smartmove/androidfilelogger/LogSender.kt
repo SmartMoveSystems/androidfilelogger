@@ -13,7 +13,7 @@ class LogSender(
     private val apiConfig: ApiConfig,
     private val logManager: LogManagerInterface?
 ) {
-    private val endpoint: LogEndpoint = ApiServiceGenerator(apiConfig.baseUrl).createService(LogEndpoint::class.java)
+    private val endpoint: LogEndpoint = ApiServiceGenerator().createService(LogEndpoint::class.java)
 
     fun sendLogs(body: String, callback: LogSenderCallback) {
         logManager?.let {
@@ -41,7 +41,7 @@ class LogSender(
                 val message = RequestBody.create(MediaType.parse("text/plain"), body)
                 val type = RequestBody.create(MediaType.parse("text/plain"), apiConfig.type)
                 val logs = zipFile?.let { RequestBody.create(MediaType.parse("image/jpeg"), zipFile) }
-                endpoint.sendLogs(subject, message, type, logs).enqueue(object : retrofit2.Callback<Void> {
+                endpoint.sendLogs(apiConfig.url, subject, message, type, logs).enqueue(object : retrofit2.Callback<Void> {
                     override fun onFailure(call: Call<Void>, t: Throwable) {
                         Timber.e(t, "Failed to send log")
                         callback.onFailure()

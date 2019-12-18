@@ -1,6 +1,9 @@
 package com.smartmove.androidfilelogger
 
 import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
@@ -79,17 +82,21 @@ class CrashLogger(context: Context, fileName: String, private val listener: Cras
 
     fun prepareCrashLog() {
         if (crashLogExists()) {
-            val crashLogContent = StringBuilder("crash log:\n")
-            crashLogContent.append("<pre>\n")
+            GlobalScope.launch(Dispatchers.IO) {
+                val crashLogContent = StringBuilder("crash log:\n")
+                crashLogContent.append("<pre>\n")
 
-            try {
-                crashLogContent.append(crashLogFile.readText())
-            } catch (ex: IOException) {
-                Timber.e(ex, "Error opening crash log file for input and sending")
+                try {
+                    crashLogContent.append(crashLogFile.readText())
+                } catch (ex: IOException) {
+                    Timber.e(ex, "Error opening crash log file for input and sending")
+                }
+                crashLogContent.append("\n</pre>\n")
+
+                GlobalScope.launch(Dispatchers.Main) {
+                    listener?.handleCrashLog(crashLogContent.toString(), handledCallback)
+                }
             }
-            crashLogContent.append("\n</pre>\n")
-
-            listener?.handleCrashLog(crashLogContent.toString(), handledCallback)
         }
     }
 }
