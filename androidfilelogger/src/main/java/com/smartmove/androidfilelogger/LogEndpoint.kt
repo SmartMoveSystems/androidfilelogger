@@ -1,5 +1,6 @@
 package com.smartmove.androidfilelogger
 
+import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.http.Multipart
@@ -15,6 +16,6 @@ interface LogEndpoint {
         @Part("subject") subject: RequestBody,
         @Part("body") messageBody: RequestBody,
         @Part("type") type: RequestBody,
-        @Part("file\"; filename=\"logs.zip\" ") file: RequestBody?
+        @Part file: MultipartBody.Part?
     ): Call<Void>
 }

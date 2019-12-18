@@ -1,2 +1,3 @@
 rootProject.name='SmartMove Android File Logger'
 include ':androidfilelogger'
+include ':logsenderexample'
