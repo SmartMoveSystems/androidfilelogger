@@ -14,15 +14,20 @@ class LogSender(
     private val apiConfig: ApiConfig,
     private val logManager: LogManagerInterface?
 ) {
-    private val endpoint: LogEndpoint = ApiServiceGenerator(apiConfig.url).createService(LogEndpoint::class.java)
+    private val endpoint: LogEndpoint? = try {
+        ApiServiceGenerator(apiConfig.url).createService(LogEndpoint::class.java)
+    } catch (e: Exception) {
+        Timber.e(e, "Failed to configure log sender")
+        null
+    }
 
     fun sendLogs(body: String, callback: LogSenderCallback) {
-        logManager?.let {
+        if (logManager != null && endpoint != null) {
             var zipFile: File? = null
             try {
                 try {
-                    val logFiles = it.getLogFiles()
-                    val logDir = it.getLogDir()
+                    val logFiles = logManager.getLogFiles()
+                    val logDir = logManager.getLogDir()
 
                     if (logDir != null && logFiles.isNotEmpty()) {
                         val zipFileName = (logDir + File.separator + Date()).replace(" ", "_")
@@ -75,6 +80,8 @@ class LogSender(
                 zipFile?.delete()
                 callback.onFailure()
             }
-        } ?: callback.onFailure()
+        } else {
+            callback.onFailure()
+        }
     }
 }

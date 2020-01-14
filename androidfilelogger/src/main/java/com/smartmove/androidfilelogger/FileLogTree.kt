@@ -49,7 +49,7 @@ class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(
         }
         if (logDir == null || !logDir.exists()) {
             // Not much we can do about this
-            Log.e(FileLogTree::class.java.simpleName, "File logging directory doesn't exist")
+            logIfDebug(Log.ERROR, "File logging directory doesn't exist")
             return
         }
         if (checkCurrentFileReady()) {
@@ -71,9 +71,20 @@ class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(
                 fileOutputStream.write(sb.toString().toByteArray())
                 fileOutputStream.flush()
             } catch (e: IOException) {
-                Log.e(FileLogTree::class.java.simpleName, "Could not write to file!", e)
+                logIfDebug(Log.ERROR, "Could not write to file!", e)
             } finally {
                 tryToCloseOutputStream(fileOutputStream)
+            }
+        }
+    }
+
+    private fun logIfDebug(level: Int, message: String, err: Throwable? = null) {
+        if (debug) {
+            when (level) {
+                Log.DEBUG -> Log.d(FileLogTree::class.java.simpleName, message, err)
+                Log.INFO -> Log.i(FileLogTree::class.java.simpleName, message, err)
+                Log.WARN -> Log.w(FileLogTree::class.java.simpleName, message, err)
+                Log.ERROR -> Log.e(FileLogTree::class.java.simpleName, message, err)
             }
         }
     }
@@ -81,47 +92,42 @@ class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(
     private fun checkCurrentFileReady(): Boolean {
         if (currentLogFile == null) {
             // Current log file not defined
-            Log.d(FileLogTree::class.java.simpleName, "No current log file")
+            logIfDebug(Log.DEBUG, "No current log file")
             val latestLogFile = getLatestLogFile()
             if (latestLogFile != null) {
-                Log.d(
-                    FileLogTree::class.java.simpleName,
-                    "Existing log file found under max size: " + latestLogFile.name
-                )
+                logIfDebug(Log.DEBUG, "Existing log file found under max size: " + latestLogFile.name)
                 currentLogFile = latestLogFile
                 return true
             } else {
                 val logFile = createNewFile()
                 if (logFile != null) {
-                    Log.d(
-                        FileLogTree::class.java.simpleName,
-                        "No usable existing log file found, created new log file: " + logFile.name
-                    )
+                    logIfDebug(Log.DEBUG, "No usable existing log file found, created new log file: " + logFile.name)
                     currentLogFile = logFile
                     return true
                 }
             }
             // Couldn't find or create a log file
-            Log.e(FileLogTree::class.java.simpleName, "Could not create new log file!")
+            logIfDebug(Log.ERROR, "Could not create new log file!")
             return false
         } else if (currentLogFile!!.length() > FILE_MAX_LENGTH) {
-            // Current log file has reached max size. Try to roll over
-            Log.d(FileLogTree::class.java.simpleName, "Current files exceeds max length")
-            val logFile = createNewFile()
-            if (logFile != null) {
-                Log.d(
-                    FileLogTree::class.java.simpleName,
-                    "Rolled over to new log file: " + logFile.name
-                )
-                currentLogFile = logFile
-                cleanupAndReturnFileList()
-            } else {
-                Log.w(FileLogTree::class.java.simpleName, "Could not create new file for rollover!")
-            }
-            // If we couldn't create a new file, must keep using the old one as a fallback
+            fileMaxLengthExceeded()
         }
         // Current file is defined
         return true
+    }
+
+    private fun fileMaxLengthExceeded() {
+        // Current log file has reached max size. Try to roll over
+        logIfDebug(Log.DEBUG, "Current files exceeds max length")
+        val logFile = createNewFile()
+        if (logFile != null) {
+            logIfDebug(Log.DEBUG, "Rolled over to new log file: " + logFile.name)
+            currentLogFile = logFile
+            cleanupAndReturnFileList()
+        } else {
+            logIfDebug(Log.WARN, "Could not create new file for rollover!")
+        }
+        // If we couldn't create a new file, must keep using the old one as a fallback
     }
 
     private fun cleanupAndReturnFileList(): List<File>? {
@@ -133,15 +139,11 @@ class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(
             }
             if (total > TOTAL_MAX_LENGTH) {
                 val toDelete = fileList[0]
-                Log.d(
-                    FileLogTree::class.java.simpleName,
-                    "Max allowable log directory size exceeded. Deleting oldest file: " + toDelete.name
-                )
+                logIfDebug(Log.DEBUG, "Max allowable log directory size exceeded. Deleting oldest file: " + toDelete.name)
                 if (toDelete.delete()) {
                     return cleanupAndReturnFileList()
                 } else {
-                    // There was an error deleting the file, no choice but to bail out
-                    Log.w(FileLogTree::class.java.simpleName, "Failed to delete file")
+                    logIfDebug(Log.WARN, "Failed to delete file")
                 }
             }
         }
@@ -166,13 +168,10 @@ class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(
             if (newFile.exists()) {
                 return newFile
             } else {
-                Log.e(
-                    FileLogTree::class.java.simpleName,
-                    "Newly created file doesn't exist: " + newFile.name
-                )
+                logIfDebug(Log.ERROR, "Newly created file doesn't exist: " + newFile.name)
             }
         } catch (e: IOException) {
-            Log.e(FileLogTree::class.java.simpleName, "Could not create new log file!", e)
+            logIfDebug(Log.ERROR, "Could not create new log file!", e)
         }
 
         return null
@@ -191,10 +190,7 @@ class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(
                 }
             }
             fileList.removeAll(removeList)
-            Log.d(
-                FileLogTree::class.java.simpleName,
-                "Found " + fileList.size + " existing log files"
-            )
+            logIfDebug(Log.DEBUG, "Found " + fileList.size + " existing log files")
             // Sort by name (effectively by date)
             fileList.sortWith(Comparator { o1, o2 -> o1.name.compareTo(o2.name) })
         }
