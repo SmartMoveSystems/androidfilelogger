@@ -2,6 +2,9 @@ package com.smartmove.androidfilelogger
 
 import android.annotation.SuppressLint
 import android.util.Log
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
 import java.io.OutputStream
@@ -11,13 +14,19 @@ import java.io.FilenameFilter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.Executors
 
 @SuppressLint("LogNotTimber")
 open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(), LogManagerInterface {
     private val logDir: File?
     private var currentLogFile: File? = null
-    
+
     override var logLevel: Int = Log.VERBOSE
+
+    private val queue = ConcurrentLinkedQueue<LogEntry>()
+
+    private val singleThreadContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
     companion object {
         private const val FILE_DATE_FORMAT = "yyyy-MM-dd_HH-mm-ss-SSS"
@@ -58,28 +67,38 @@ open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.Debug
             logIfDebug(Log.ERROR, "File logging directory doesn't exist")
             return
         }
-        if (checkCurrentFileReady()) {
-            var fileOutputStream: OutputStream? = null
-            try {
-                val logDateFormat = SimpleDateFormat(LOG_DATE_FORMAT, Locale.UK)
-                fileOutputStream = FileOutputStream(currentLogFile!!, true)
-                val sb = StringBuilder()
-                sb.append("[").append(logDateFormat.format(Date())).append("] ")
-                sb.append(tag).append("|")
-                sb.append(message)
-                if (t != null) {
-                    sb.append(": ")
-                    sb.append(t.toString())
-                    sb.append("\r\n")
-                    sb.append(t.stackTrace)
+        queue.add(LogEntry(priority, tag, message, t))
+        processQueue()
+    }
+
+    private fun processQueue() {
+        GlobalScope.launch(singleThreadContext) {
+            while (queue.isNotEmpty()) {
+                val entry = queue.poll()
+                if (entry != null && checkCurrentFileReady()) {
+                    var fileOutputStream: OutputStream? = null
+                    try {
+                        val logDateFormat = SimpleDateFormat(LOG_DATE_FORMAT, Locale.UK)
+                        fileOutputStream = FileOutputStream(currentLogFile!!, true)
+                        val sb = StringBuilder()
+                        sb.append("[").append(logDateFormat.format(Date())).append("] ")
+                        sb.append(entry.tag).append("|")
+                        sb.append(entry.message)
+                        if (entry.t != null) {
+                            sb.append(": ")
+                            sb.append(entry.t.toString())
+                            sb.append("\r\n")
+                            sb.append(entry.t.stackTrace)
+                        }
+                        sb.append("\r\n")
+                        fileOutputStream.write(sb.toString().toByteArray())
+                        fileOutputStream.flush()
+                    } catch (e: IOException) {
+                        logIfDebug(Log.ERROR, "Could not write to file!", e)
+                    } finally {
+                        tryToCloseOutputStream(fileOutputStream)
+                    }
                 }
-                sb.append("\r\n")
-                fileOutputStream.write(sb.toString().toByteArray())
-                fileOutputStream.flush()
-            } catch (e: IOException) {
-                logIfDebug(Log.ERROR, "Could not write to file!", e)
-            } finally {
-                tryToCloseOutputStream(fileOutputStream)
             }
         }
     }
@@ -214,4 +233,6 @@ open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.Debug
     override fun getLogDir(): String? {
         return logDir?.absolutePath
     }
+
+    private data class LogEntry(val priority: Int, val tag: String?, val message: String, val t: Throwable?)
 }
