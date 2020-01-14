@@ -13,9 +13,10 @@ import java.util.Date
 import java.util.Locale
 
 @SuppressLint("LogNotTimber")
-class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(), LogManagerInterface {
+open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(), LogManagerInterface {
     private val logDir: File?
     private var currentLogFile: File? = null
+    val logLevel: Int = Log.VERBOSE
 
     companion object {
         private const val FILE_DATE_FORMAT = "yyyy-MM-dd_HH-mm-ss-SSS"
@@ -34,6 +35,10 @@ class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(
         }
         this.logDir = logDir
         checkCurrentFileReady()
+    }
+
+    override fun isLoggable(tag: String?, priority: Int): Boolean {
+        return priority >= logLevel
     }
 
     /**
