@@ -11,4 +11,6 @@ interface LogManagerInterface {
     fun getLogFileNames(): Array<String>?
 
     fun getLogDir(): String?
+
+    var logLevel: Int
 }

@@ -16,7 +16,8 @@ import java.util.Locale
 open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(), LogManagerInterface {
     private val logDir: File?
     private var currentLogFile: File? = null
-    val logLevel: Int = Log.VERBOSE
+    
+    override var logLevel: Int = Log.VERBOSE
 
     companion object {
         private const val FILE_DATE_FORMAT = "yyyy-MM-dd_HH-mm-ss-SSS"
