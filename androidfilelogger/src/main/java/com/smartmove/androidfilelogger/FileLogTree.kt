@@ -22,7 +22,7 @@ open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.Debug
     private val logDir: File?
     private var currentLogFile: File? = null
 
-    override var logLevel: Int = Log.VERBOSE
+    override var logLevel: Int = if (debug) Log.VERBOSE else Log.INFO
 
     private val queue = ConcurrentLinkedQueue<LogEntry>()
 
@@ -78,20 +78,8 @@ open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.Debug
                 if (entry != null && checkCurrentFileReady()) {
                     var fileOutputStream: OutputStream? = null
                     try {
-                        val logDateFormat = SimpleDateFormat(LOG_DATE_FORMAT, Locale.UK)
                         fileOutputStream = FileOutputStream(currentLogFile!!, true)
-                        val sb = StringBuilder()
-                        sb.append("[").append(logDateFormat.format(Date())).append("] ")
-                        sb.append(entry.tag).append("|")
-                        sb.append(entry.message)
-                        if (entry.t != null) {
-                            sb.append(": ")
-                            sb.append(entry.t.toString())
-                            sb.append("\r\n")
-                            sb.append(entry.t.stackTrace)
-                        }
-                        sb.append("\r\n")
-                        fileOutputStream.write(sb.toString().toByteArray())
+                        fileOutputStream.write(entry.print(LOG_DATE_FORMAT).toByteArray())
                         fileOutputStream.flush()
                     } catch (e: IOException) {
                         logIfDebug(Log.ERROR, "Could not write to file!", e)
@@ -233,6 +221,4 @@ open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.Debug
     override fun getLogDir(): String? {
         return logDir?.absolutePath
     }
-
-    private data class LogEntry(val priority: Int, val tag: String?, val message: String, val t: Throwable?)
 }
