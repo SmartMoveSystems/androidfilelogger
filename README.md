@@ -1,6 +1,10 @@
 # androidfilelogger
 SmartMove Android File Logger
 
+```
+implementation com.github.SmartMoveSystems:androidfilelogger:3.7
+```
+
 ## Setting up to log and report crashes
 
 In you application's onCreate() method:
@@ -18,7 +22,7 @@ In you application's onCreate() method:
                 logManager,
                 activity.getString(R.string.crash_log_file),
                 new ApiConfig(
-                  activity.getString(R.string.crash_log_upload_url), 
+                  activity.getString(R.string.crash_log_upload_url), // Must be Retrofit-compatible
                   "Logs Uploaded", activity.getString(R.string.type)
                 )
         );
