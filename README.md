@@ -19,7 +19,7 @@ In you application's onCreate() method:
         Timber.plant(tree);
         crashLogger = new CrashLogger(
                 activity,
-                logManager,
+                tree,
                 activity.getString(R.string.crash_log_file),
                 new ApiConfig(
                   activity.getString(R.string.crash_log_upload_url), // Must be Retrofit-compatible
