@@ -2,7 +2,7 @@
 SmartMove Android File Logger
 
 ```
-implementation com.github.SmartMoveSystems:androidfilelogger:3.7
+implementation 'com.github.SmartMoveSystems:androidfilelogger:3.7'
 ```
 
 ## Setting up to log and report crashes
