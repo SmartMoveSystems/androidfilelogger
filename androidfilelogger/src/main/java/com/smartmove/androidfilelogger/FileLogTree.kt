@@ -18,7 +18,11 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 
 @SuppressLint("LogNotTimber")
-open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.DebugTree(), LogManagerInterface {
+open class FileLogTree(
+    baseDir: File,
+    private val debug: Boolean,
+    private val config: LoggerConfig = LoggerConfig()
+) : Timber.DebugTree(), LogManagerInterface {
     private val logDir: File?
     private var currentLogFile: File? = null
 
@@ -28,18 +32,8 @@ open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.Debug
 
     private val singleThreadContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
-    companion object {
-        private const val FILE_DATE_FORMAT = "yyyy-MM-dd_HH-mm-ss-SSS"
-        private const val LOG_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS"
-        private const val LOG_DIR_NAME = "logs"
-        private const val LOG_PREFIX = "log"
-        private const val LOG_EXT = ".log"
-        private const val FILE_MAX_LENGTH: Long = 1000000
-        private const val TOTAL_MAX_LENGTH: Long = 5000000
-    }
-
     init {
-        val logDir = File(baseDir.absolutePath + File.separator + LOG_DIR_NAME)
+        val logDir = File(baseDir.absolutePath + File.separator + config.logDirName)
         if (!logDir.exists()) {
             logDir.mkdir()
         }
@@ -79,7 +73,7 @@ open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.Debug
                     var fileOutputStream: OutputStream? = null
                     try {
                         fileOutputStream = FileOutputStream(currentLogFile!!, true)
-                        fileOutputStream.write(entry.print(LOG_DATE_FORMAT).toByteArray())
+                        fileOutputStream.write(entry.print(config.logDateFormat).toByteArray())
                         fileOutputStream.flush()
                     } catch (e: IOException) {
                         logIfDebug(Log.ERROR, "Could not write to file!", e)
@@ -122,7 +116,7 @@ open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.Debug
             // Couldn't find or create a log file
             logIfDebug(Log.ERROR, "Could not create new log file!")
             return false
-        } else if (currentLogFile!!.length() > FILE_MAX_LENGTH) {
+        } else if (currentLogFile!!.length() > config.fileMaxLength) {
             fileMaxLengthExceeded()
         }
         // Current file is defined
@@ -150,7 +144,7 @@ open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.Debug
             for (file in fileList) {
                 total += file.length()
             }
-            if (total > TOTAL_MAX_LENGTH) {
+            if (total > config.totalMaxLength) {
                 val toDelete = fileList[0]
                 logIfDebug(Log.DEBUG, "Max allowable log directory size exceeded. Deleting oldest file: " + toDelete.name)
                 if (toDelete.delete()) {
@@ -167,14 +161,14 @@ open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.Debug
         val currentFiles = cleanupAndReturnFileList()
         if (currentFiles != null && currentFiles.isNotEmpty()) {
             val latest = currentFiles[currentFiles.size - 1]
-            return if (latest.length() >= FILE_MAX_LENGTH) null else latest
+            return if (latest.length() >= config.fileMaxLength) null else latest
         }
         return null
     }
 
     private fun createNewFile(): File? {
-        val fileDateFormat = SimpleDateFormat(FILE_DATE_FORMAT, Locale.UK)
-        val fileName = LOG_PREFIX + fileDateFormat.format(Date()) + LOG_EXT
+        val fileDateFormat = SimpleDateFormat(config.fileDateFormat, Locale.UK)
+        val fileName = config.logPrefix + fileDateFormat.format(Date()) + config.logExt
         val newFile = File(logDir!!.absolutePath + File.separator + fileName)
         try {
             newFile.createNewFile()
@@ -198,7 +192,7 @@ open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.Debug
             fileList = mutableListOf(*currentFiles)
             val removeList = ArrayList<File>()
             for (file in fileList) {
-                if (!file.name.startsWith(LOG_PREFIX)) {
+                if (!file.name.startsWith(config.logPrefix)) {
                     removeList.add(file)
                 }
             }
@@ -214,7 +208,7 @@ open class FileLogTree(baseDir: File, private val debug: Boolean) : Timber.Debug
         val logPath = getLogDir()
         // Get a list of the current log files available
         val file = File(logPath!!)
-        val filter = FilenameFilter { _, filename -> filename.startsWith(LOG_PREFIX) }
+        val filter = FilenameFilter { _, filename -> filename.startsWith(config.logPrefix) }
         return file.list(filter)
     }
 
