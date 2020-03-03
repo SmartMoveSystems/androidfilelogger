@@ -58,6 +58,7 @@ open class FileLogTree(
     }
 
     init {
+        logIfDebug(Log.INFO, "init: ${android.os.Process.myUid().toString()}")
         val logDir = File(baseDir.absolutePath + File.separator + config.logDirName)
         lock.lock()
         if (!logDir.exists()) {
@@ -156,7 +157,9 @@ open class FileLogTree(
     private fun fileMaxLengthExceeded() {
         // Current log file has reached max size. Try to roll over
         logIfDebug(Log.DEBUG, "Current files exceeds max length")
-        val logFile = createNewFile()
+        val latest = getLatestLogFile()
+        // Check if another process in the same sandbox has already rolled over. If not, create new file
+        val logFile = if (latest == null || latest.name == currentLogFile?.name) createNewFile() else latest
         if (logFile != null) {
             logIfDebug(Log.DEBUG, "Rolled over to new log file: " + logFile.name)
             currentLogFile = logFile
