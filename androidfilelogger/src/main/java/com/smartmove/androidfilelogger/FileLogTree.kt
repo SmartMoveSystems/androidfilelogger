@@ -51,7 +51,7 @@ open class FileLogTree(
     // Lock for use across processes in the same app to keep things synchronised
     private val lock = SpinLock(android.os.Process.myUid().toString())
 
-    private val pid = config.tag ?: android.os.Process.myPid().toString()
+    private val pid get() = config.tag ?: android.os.Process.myPid().toString()
 
     override fun createStackElementTag(element: StackTraceElement): String? {
         return "($pid) ${super.createStackElementTag(element)}"
@@ -60,13 +60,13 @@ open class FileLogTree(
     init {
         logIfDebug(Log.INFO, "init: ${android.os.Process.myUid().toString()}")
         val logDir = File(baseDir.absolutePath + File.separator + config.logDirName)
-        lock.lock()
+        lock.timedLock(1000)
         if (!logDir.exists()) {
             logDir.mkdir()
         }
+        lock.release()
         this.logDir = logDir
         checkCurrentFileReady()
-        lock.release()
     }
 
     override fun isLoggable(tag: String?, priority: Int): Boolean {
@@ -96,7 +96,6 @@ open class FileLogTree(
     @Suppress("BlockingMethodInNonBlockingContext")
     private fun processQueue() {
         GlobalScope.launch(singleThreadContext) {
-            lock.timedLock(1000)
             while (queue.isNotEmpty()) {
                 val entry = queue.poll()
                 if (entry != null && checkCurrentFileReady()) {
@@ -112,7 +111,6 @@ open class FileLogTree(
                     }
                 }
             }
-            lock.release()
         }
     }
 
@@ -128,6 +126,7 @@ open class FileLogTree(
     }
 
     private fun checkCurrentFileReady(): Boolean {
+        lock.timedLock(1000)
         if (currentLogFile == null) {
             // Current log file not defined
             logIfDebug(Log.DEBUG, "No current log file")
@@ -135,22 +134,26 @@ open class FileLogTree(
             if (latestLogFile != null) {
                 logIfDebug(Log.DEBUG, "Existing log file found under max size: " + latestLogFile.name)
                 currentLogFile = latestLogFile
+                lock.release()
                 return true
             } else {
                 val logFile = createNewFile()
                 if (logFile != null) {
                     logIfDebug(Log.DEBUG, "No usable existing log file found, created new log file: " + logFile.name)
                     currentLogFile = logFile
+                    lock.release()
                     return true
                 }
             }
             // Couldn't find or create a log file
             logIfDebug(Log.ERROR, "Could not create new log file!")
+            lock.release()
             return false
         } else if (currentLogFile!!.length() > config.fileMaxLength) {
             fileMaxLengthExceeded()
         }
         // Current file is defined
+        lock.release()
         return true
     }
 
