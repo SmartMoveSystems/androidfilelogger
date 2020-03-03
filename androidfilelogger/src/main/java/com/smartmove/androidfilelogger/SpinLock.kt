@@ -9,12 +9,12 @@ import java.io.IOException
  */
 class SpinLock(private val name: String) {
 
-    private var mServer: LocalServerSocket? = null
+    private var server: LocalServerSocket? = null
 
     @Synchronized
     @Throws(IOException::class)
     fun tryLock() {
-        mServer = if (mServer == null) {
+        server = if (server == null) {
             LocalServerSocket(name)
         } else {
             throw IllegalStateException("tryLock but has locked")
@@ -58,12 +58,11 @@ class SpinLock(private val name: String) {
     }
 
     @Synchronized
-    fun release() {
-        if (mServer != null) {
-            try {
-                mServer!!.close()
-            } catch (e: IOException) { // ignore the exception
-            }
+fun release() {
+        try {
+            server?.close()
+            server = null
+        } catch (e: IOException) { // ignore the exception
         }
     }
 }
