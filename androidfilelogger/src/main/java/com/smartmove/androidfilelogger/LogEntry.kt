@@ -5,12 +5,12 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-data class LogEntry(val priority: Int, val tag: String?, val message: String, val t: Throwable?)
+data class LogEntry(val priority: Int, val tag: String?, val message: String, val t: Throwable? = null, val time: Date = Date())
 
 fun LogEntry.print(logDateFormatString: String): String {
     val logDateFormat = SimpleDateFormat(logDateFormatString, Locale.UK)
     val sb = StringBuilder()
-    sb.append("[").append(logDateFormat.format(Date())).append("] ")
+    sb.append("[").append(logDateFormat.format(time)).append("] ")
     sb.append(tag).append("|")
     sb.append(getPriorityName(priority)).append("|")
     sb.append(message)
