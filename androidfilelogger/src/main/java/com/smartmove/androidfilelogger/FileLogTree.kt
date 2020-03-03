@@ -7,15 +7,29 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
-import java.io.OutputStream
+import java.io.FilenameFilter
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.FilenameFilter
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
+import kotlin.Array
+import kotlin.Boolean
+import kotlin.Comparator
+import kotlin.Int
+import kotlin.Long
+import kotlin.String
+import kotlin.Suppress
+import kotlin.Throwable
+import kotlin.collections.ArrayList
+import kotlin.collections.List
+import kotlin.collections.MutableList
+import kotlin.collections.isNotEmpty
+import kotlin.collections.mutableListOf
+import kotlin.collections.sortWith
 
 @SuppressLint("LogNotTimber")
 open class FileLogTree(
@@ -23,7 +37,9 @@ open class FileLogTree(
     private val debug: Boolean,
     private val config: LoggerConfig = LoggerConfig()
 ) : Timber.DebugTree(), LogManagerInterface {
+
     private val logDir: File?
+
     private var currentLogFile: File? = null
 
     override var logLevel: Int = if (debug) Log.VERBOSE else Log.INFO
@@ -32,13 +48,24 @@ open class FileLogTree(
 
     private val singleThreadContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
+    // Lock for use across processes in the same app to keep things synchronised
+    private val lock = SpinLock(android.os.Process.myUid().toString())
+
+    private val pid = config.tag ?: android.os.Process.myPid().toString()
+
+    override fun createStackElementTag(element: StackTraceElement): String? {
+        return "($pid) ${super.createStackElementTag(element)}"
+    }
+
     init {
         val logDir = File(baseDir.absolutePath + File.separator + config.logDirName)
+        lock.lock()
         if (!logDir.exists()) {
             logDir.mkdir()
         }
         this.logDir = logDir
         checkCurrentFileReady()
+        lock.release()
     }
 
     override fun isLoggable(tag: String?, priority: Int): Boolean {
@@ -65,8 +92,10 @@ open class FileLogTree(
         processQueue()
     }
 
+    @Suppress("BlockingMethodInNonBlockingContext")
     private fun processQueue() {
         GlobalScope.launch(singleThreadContext) {
+            lock.timedLock(1000)
             while (queue.isNotEmpty()) {
                 val entry = queue.poll()
                 if (entry != null && checkCurrentFileReady()) {
@@ -82,6 +111,7 @@ open class FileLogTree(
                     }
                 }
             }
+            lock.release()
         }
     }
 

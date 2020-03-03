@@ -2,7 +2,8 @@ package com.smartmove.androidfilelogger
 
 import android.util.Log
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 data class LogEntry(val priority: Int, val tag: String?, val message: String, val t: Throwable?)
 

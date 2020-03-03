@@ -80,7 +80,8 @@ class CrashLogger(context: Context, fileName: String, private val listener: Cras
         }
     }
 
-    fun prepareCrashLog(messagePrefix : String = "Message: ") {
+    @JvmOverloads
+    fun prepareCrashLog(messagePrefix: String = "Message: ") {
         if (crashLogExists()) {
             GlobalScope.launch(Dispatchers.IO) {
                 val crashLogContent = StringBuilder(messagePrefix)

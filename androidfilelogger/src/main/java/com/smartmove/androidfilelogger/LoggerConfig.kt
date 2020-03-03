@@ -7,5 +7,6 @@ data class LoggerConfig(
     val logPrefix: String = "log",
     val logExt: String = ".log",
     val fileMaxLength: Long = 1000000,
-    val totalMaxLength: Long = 5000000
+    val totalMaxLength: Long = 5000000,
+    val tag: String? = null
 )
