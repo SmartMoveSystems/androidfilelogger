@@ -21,7 +21,8 @@ class LogSender(
         null
     }
 
-    fun sendLogs(body: String, callback: LogSenderCallback) {
+    @JvmOverloads
+    fun sendLogs(body: String, callback: LogSenderCallback, numFiles: Int = ALL_FILES) {
         if (logManager != null && endpoint != null) {
             var zipFile: File? = null
             try {
@@ -30,10 +31,15 @@ class LogSender(
                     val logDir = logManager.getLogDir()
 
                     if (logDir != null && logFiles.isNotEmpty()) {
+                        val filteredFiles = if (numFiles <= ALL_FILES) {
+                            logFiles
+                        } else {
+                            logFiles.sortedBy { it.name }.takeLast(numFiles)
+                        }
                         val zipFileName = (logDir + File.separator + Date()).replace(" ", "_")
                         zipFile = File(zipFileName)
                         if (zipFile.createNewFile()) {
-                            addToZip(logFiles, zipFile)
+                            addToZip(filteredFiles, zipFile)
                         } else {
                             Timber.e("Failed to create zip file")
                             zipFile = null
@@ -83,5 +89,9 @@ class LogSender(
         } else {
             callback.onFailure()
         }
+    }
+
+    companion object {
+        const val ALL_FILES = -1
     }
 }
