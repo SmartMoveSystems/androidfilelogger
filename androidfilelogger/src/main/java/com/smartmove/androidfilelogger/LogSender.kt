@@ -22,7 +22,7 @@ class LogSender(
     }
 
     @JvmOverloads
-    fun sendLogs(body: String, callback: LogSenderCallback, numFiles: Int = ALL_FILES) {
+    fun sendLogs(body: String, callback: LogSenderCallback, numFiles: Int = ALL_FILES, additionalParts: Map<String, String>? = null) {
         if (logManager != null && endpoint != null) {
             var zipFile: File? = null
             try {
@@ -52,7 +52,6 @@ class LogSender(
 
                 val subject = RequestBody.create(MediaType.parse("text/plain"), apiConfig.subject)
                 val message = RequestBody.create(MediaType.parse("text/plain"), body)
-                val type = RequestBody.create(MediaType.parse("text/plain"), apiConfig.type)
 
                 val logs = zipFile?.let {
                     val reqBody = RequestBody.create(MediaType.parse("image/jpeg"), zipFile)
@@ -64,7 +63,7 @@ class LogSender(
                 } else {
                     apiConfig.url
                 }
-                endpoint.sendLogs(trimmedUrl, subject, message, type, logs).enqueue(object : retrofit2.Callback<Void> {
+                endpoint.sendLogs(trimmedUrl, subject, message, logs, additionalParts).enqueue(object : retrofit2.Callback<Void> {
                     override fun onFailure(call: Call<Void>, t: Throwable) {
                         Timber.e(t, "Failed to send log")
                         callback.onFailure()

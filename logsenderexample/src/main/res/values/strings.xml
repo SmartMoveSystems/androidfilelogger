@@ -11,5 +11,4 @@
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     <string name="crash_log_file">crash.log</string>
     <string name="crash_log_upload_url">http://localhost</string>
-    <string name="type">Some log type string</string>
 </resources>

@@ -21,8 +21,7 @@ class LogSenderApp : Application() {
         logManager = tree
         apiConfig =  ApiConfig(
             getString(R.string.crash_log_upload_url),
-            "Logs Uploaded",
-            getString(R.string.type)
+            "Logs Uploaded"
         )
         val crashLogger = CrashLogger(
             this,
@@ -43,6 +42,6 @@ class LogSenderApp : Application() {
             override fun onFailure() {
                 Timber.e("Oops, looks like something went wrong")
             }
-        })
+        }, LogSender.ALL_FILES, mapOf("extraPart" to "extraValue"))
     }
 }

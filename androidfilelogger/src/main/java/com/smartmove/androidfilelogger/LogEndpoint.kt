@@ -5,8 +5,9 @@ import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.http.Multipart
 import retrofit2.http.POST
-import retrofit2.http.Part
 import retrofit2.http.Url
+import retrofit2.http.Part
+import retrofit2.http.PartMap
 
 interface LogEndpoint {
     @Multipart
@@ -15,7 +16,7 @@ interface LogEndpoint {
         @Url url: String,
         @Part("subject") subject: RequestBody,
         @Part("body") messageBody: RequestBody,
-        @Part("type") type: RequestBody,
-        @Part file: MultipartBody.Part?
+        @Part file: MultipartBody.Part?,
+        @PartMap additionalParts: Map<String, String>? = null
     ): Call<Void>
 }

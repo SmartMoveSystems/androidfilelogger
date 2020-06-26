@@ -58,7 +58,7 @@ open class FileLogTree(
     }
 
     init {
-        logIfDebug(Log.INFO, "init: ${android.os.Process.myUid().toString()}")
+        logIfDebug(Log.INFO, "init: ${android.os.Process.myUid()}")
         val logDir = File(baseDir.absolutePath + File.separator + config.logDirName)
         lock.timedLock(1000)
         if (!logDir.exists()) {
