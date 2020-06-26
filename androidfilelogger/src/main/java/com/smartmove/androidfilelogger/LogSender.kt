@@ -7,7 +7,6 @@ import retrofit2.Call
 import retrofit2.Response
 import timber.log.Timber
 import java.io.File
-import java.io.IOException
 import java.util.Date
 
 class LogSender(
@@ -22,7 +21,7 @@ class LogSender(
     }
 
     @JvmOverloads
-    fun sendLogs(body: String, callback: LogSenderCallback, numFiles: Int = ALL_FILES, additionalParts: Map<String, String>? = null) {
+    fun sendLogs(callback: LogSenderCallback, numFiles: Int = ALL_FILES, additionalParams: Map<String, String>? = null) {
         if (logManager != null && endpoint != null) {
             var zipFile: File? = null
             try {
@@ -50,9 +49,6 @@ class LogSender(
                     Timber.e(e, "Error generating zipped logs")
                 }
 
-                val subject = RequestBody.create(MediaType.parse("text/plain"), apiConfig.subject)
-                val message = RequestBody.create(MediaType.parse("text/plain"), body)
-
                 val logs = zipFile?.let {
                     val reqBody = RequestBody.create(MediaType.parse("image/jpeg"), zipFile)
                     MultipartBody.Part.createFormData("file", zipFile.name, reqBody)
@@ -64,9 +60,20 @@ class LogSender(
                     apiConfig.url
                 }
 
-                val extraParts = additionalParts?.mapValues { RequestBody.create(MediaType.parse("text/plain"), it.value) }
+                val extraParts = if (additionalParams.isNullOrEmpty() && apiConfig.stringParts.isNullOrEmpty()) {
+                    null
+                } else {
+                    val parts = HashMap<String, RequestBody>()
+                    apiConfig.stringParts?.entries?.forEach { parts[it.key] = RequestBody.create(MediaType.parse("text/plain"), it.value) }
+                    additionalParams?.forEach { parts[it.key] = RequestBody.create(MediaType.parse("text/plain"), it.value) }
+                    parts
+                }
 
-                endpoint.sendLogs(trimmedUrl, subject, message, logs, extraParts).enqueue(object : retrofit2.Callback<Void> {
+                val call = extraParts?.let {
+                    endpoint.sendLogs(trimmedUrl, logs, extraParts)
+                } ?: endpoint.sendLogs(trimmedUrl, logs)
+
+                call.enqueue(object : retrofit2.Callback<Void> {
                     override fun onFailure(call: Call<Void>, t: Throwable) {
                         Timber.e(t, "Failed to send log")
                         callback.onFailure()
@@ -83,7 +90,7 @@ class LogSender(
                         zipFile?.delete()
                     }
                 })
-            } catch (ex: IOException) {
+            } catch (ex: Exception) {
                 Timber.e(ex, "Error sending crash report")
                 zipFile?.delete()
                 callback.onFailure()

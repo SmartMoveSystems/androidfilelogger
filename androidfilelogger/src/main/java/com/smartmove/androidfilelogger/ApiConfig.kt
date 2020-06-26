@@ -1,6 +1,6 @@
 package com.smartmove.androidfilelogger
 
-data class ApiConfig(
+data class ApiConfig @JvmOverloads constructor(
     val url: String,
-    val subject: String
+    val stringParts: Map<String, String>? = null
 )
