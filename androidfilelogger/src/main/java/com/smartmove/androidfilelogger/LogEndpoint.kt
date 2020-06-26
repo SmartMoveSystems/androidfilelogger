@@ -17,6 +17,6 @@ interface LogEndpoint {
         @Part("subject") subject: RequestBody,
         @Part("body") messageBody: RequestBody,
         @Part file: MultipartBody.Part?,
-        @PartMap additionalParts: Map<String, String>? = null
+        @PartMap additionalParts: Map<String, RequestBody>? = null
     ): Call<Void>
 }

@@ -63,7 +63,10 @@ class LogSender(
                 } else {
                     apiConfig.url
                 }
-                endpoint.sendLogs(trimmedUrl, subject, message, logs, additionalParts).enqueue(object : retrofit2.Callback<Void> {
+
+                val extraParts = additionalParts?.mapValues { RequestBody.create(MediaType.parse("text/plain"), it.value) }
+
+                endpoint.sendLogs(trimmedUrl, subject, message, logs, extraParts).enqueue(object : retrofit2.Callback<Void> {
                     override fun onFailure(call: Call<Void>, t: Throwable) {
                         Timber.e(t, "Failed to send log")
                         callback.onFailure()
