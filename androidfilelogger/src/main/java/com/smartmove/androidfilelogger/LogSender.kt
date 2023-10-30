@@ -23,7 +23,7 @@ class LogSender(
     }
 
     @JvmOverloads
-    fun sendLogs(callback: LogSenderCallback, numFiles: Int = ALL_FILES, additionalParams: Map<String, String>? = null) {
+    fun sendLogs(callback: LogSenderCallback, numFiles: Int = ALL_FILES, additionalParams: Map<String, String>? = null, replyToEmail: String? = null) {
         if (logManager != null && endpoint != null) {
             var zipFile: File? = null
             try {
@@ -51,9 +51,20 @@ class LogSender(
                     Timber.e(e, "Error generating zipped logs")
                 }
 
-                val logs = zipFile?.let {
+                val multipartBodyBuilder = MultipartBody.Builder()
+
+
+                /*val logs = zipFile?.let {
                     val reqBody = it.asRequestBody("image/jpeg".toMediaTypeOrNull())
                     MultipartBody.Part.createFormData("file", zipFile.name, reqBody)
+                }*/
+                zipFile?.let {
+                    val reqBody = it.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                    multipartBodyBuilder.addPart(MultipartBody.Part.createFormData("file", zipFile.name, reqBody))
+                }
+
+                replyToEmail?.let {
+                    multipartBodyBuilder.addPart(MultipartBody.Part.createFormData("replyToEmail", it))
                 }
 
                 // Can't have a / on the end here
@@ -77,8 +88,9 @@ class LogSender(
                 }
 
                 val call = extraParts?.let {
-                    endpoint.sendLogs(trimmedUrl, logs, extraParts)
-                } ?: endpoint.sendLogs(trimmedUrl, logs)
+                    multipartBodyBuilder.build().parts
+                    endpoint.sendLogs(trimmedUrl, multipartBodyBuilder.build(), extraParts)
+                } ?: endpoint.sendLogs(trimmedUrl, multipartBodyBuilder.build())
 
                 call.enqueue(object : retrofit2.Callback<Void> {
                     override fun onFailure(call: Call<Void>, t: Throwable) {
