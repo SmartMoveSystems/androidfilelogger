@@ -1,8 +1,10 @@
 package com.smartmove.androidfilelogger
 
-import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Call
 import retrofit2.Response
 import timber.log.Timber
@@ -50,9 +52,10 @@ class LogSender(
                 }
 
                 val logs = zipFile?.let {
-                    val reqBody = RequestBody.create(MediaType.parse("image/jpeg"), zipFile)
+                    val reqBody = it.asRequestBody("image/jpeg".toMediaTypeOrNull())
                     MultipartBody.Part.createFormData("file", zipFile.name, reqBody)
                 }
+
                 // Can't have a / on the end here
                 val trimmedUrl = if (apiConfig.url.endsWith("/")) {
                     apiConfig.url.substring(0, apiConfig.url.length - 1)
@@ -64,8 +67,12 @@ class LogSender(
                     null
                 } else {
                     val parts = HashMap<String, RequestBody>()
-                    apiConfig.stringParts?.entries?.forEach { parts[it.key] = RequestBody.create(MediaType.parse("text/plain"), it.value) }
-                    additionalParams?.forEach { parts[it.key] = RequestBody.create(MediaType.parse("text/plain"), it.value) }
+                    apiConfig.stringParts?.entries?.forEach { parts[it.key] =
+                        it.value.toRequestBody("text/plain".toMediaTypeOrNull())
+                    }
+                    additionalParams?.forEach { parts[it.key] =
+                        it.value.toRequestBody("text/plain".toMediaTypeOrNull())
+                    }
                     parts
                 }
 
