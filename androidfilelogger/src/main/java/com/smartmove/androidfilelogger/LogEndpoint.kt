@@ -14,14 +14,14 @@ interface LogEndpoint {
     @POST
     fun sendLogs(
         @Url url: String,
-        @Part file: MultipartBody?
+        @Part files: List<MultipartBody.Part>
     ): Call<Void>
 
     @Multipart
     @POST
     fun sendLogs(
         @Url url: String,
-        @Part file: MultipartBody?,
+        @Part files: List<MultipartBody.Part>,
         @PartMap additionalParts: @JvmSuppressWildcards Map<String, RequestBody>
     ): Call<Void>
 }

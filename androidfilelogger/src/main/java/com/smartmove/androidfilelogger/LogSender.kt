@@ -52,12 +52,6 @@ class LogSender(
                 }
 
                 val multipartBodyBuilder = MultipartBody.Builder()
-
-
-                /*val logs = zipFile?.let {
-                    val reqBody = it.asRequestBody("image/jpeg".toMediaTypeOrNull())
-                    MultipartBody.Part.createFormData("file", zipFile.name, reqBody)
-                }*/
                 zipFile?.let {
                     val reqBody = it.asRequestBody("image/jpeg".toMediaTypeOrNull())
                     multipartBodyBuilder.addPart(MultipartBody.Part.createFormData("file", zipFile.name, reqBody))
@@ -88,9 +82,8 @@ class LogSender(
                 }
 
                 val call = extraParts?.let {
-                    multipartBodyBuilder.build().parts
-                    endpoint.sendLogs(trimmedUrl, multipartBodyBuilder.build(), extraParts)
-                } ?: endpoint.sendLogs(trimmedUrl, multipartBodyBuilder.build())
+                    endpoint.sendLogs(trimmedUrl, multipartBodyBuilder.build().parts, extraParts)
+                } ?: endpoint.sendLogs(trimmedUrl, multipartBodyBuilder.build().parts)
 
                 call.enqueue(object : retrofit2.Callback<Void> {
                     override fun onFailure(call: Call<Void>, t: Throwable) {
