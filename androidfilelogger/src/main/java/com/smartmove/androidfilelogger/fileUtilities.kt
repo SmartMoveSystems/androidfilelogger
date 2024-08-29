@@ -1,16 +1,15 @@
 package com.smartmove.androidfilelogger
 
-import org.apache.commons.compress.archivers.ArchiveOutputStream
-import org.apache.commons.compress.archivers.ArchiveStreamFactory
-import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
-import org.apache.commons.compress.utils.IOUtils
 import timber.log.Timber
-import java.io.OutputStream
-import java.io.InputStream
-import java.io.File
 import java.io.BufferedInputStream
-import java.io.FileOutputStream
+import java.io.BufferedOutputStream
+import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 /**
  * Tries to close a stream
@@ -37,33 +36,24 @@ fun tryToCloseInputStream(stream: InputStream?) {
 }
 
 fun addToZip(inputFiles: List<File>, zipFile: File) {
-    var archiveStream: OutputStream? = null
-    var archive: ArchiveOutputStream? = null
+    var zipOutputStream: ZipOutputStream? = null
     var input: BufferedInputStream? = null
     try {
-        archiveStream = FileOutputStream(zipFile)
-        archive = ArchiveStreamFactory().createArchiveOutputStream(
-            ArchiveStreamFactory.ZIP,
-            archiveStream
-        )
+        zipOutputStream = ZipOutputStream(BufferedOutputStream(FileOutputStream(zipFile)))
         for (file in inputFiles) {
-            val entryName = file.name
-            val entry = ZipArchiveEntry(entryName)
-            archive!!.putArchiveEntry(entry)
+            val entry = ZipEntry(file.name)
+            zipOutputStream.putNextEntry(entry)
             input = BufferedInputStream(FileInputStream(file))
 
-            IOUtils.copy(input, archive)
-            input.close()
-            archive.closeArchiveEntry()
-        }
+            input.copyTo(zipOutputStream)
 
-        archive!!.finish()
-        archiveStream.close()
+            input.close()
+            zipOutputStream.closeEntry()
+        }
     } catch (e: Exception) {
         Timber.e(e, "Error zipping files")
     } finally {
         tryToCloseInputStream(input)
-        tryToCloseOutputStream(archiveStream)
-        tryToCloseOutputStream(archive)
+        tryToCloseOutputStream(zipOutputStream)
     }
 }
